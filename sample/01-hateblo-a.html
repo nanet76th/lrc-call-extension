@@ -7,6 +7,7 @@
        (「見たまま」「Markdown」「はてな記法」モードでは、[ ] などが記法として変換されることがあります)
     2. このファイルの中身をすべて貼り付ける
     3. data-video-id を YouTube の動画ID (または動画のURL) に書き換える
+       (clrc ファイルに [yt:動画ID] を書いている場合は、data-video-id を消しても構いません)
     4. <script type="text/plain"> ～ </script> の間を、自分の clrc ファイルの中身に書き換える
 
   ■ 注意
@@ -21,6 +22,13 @@
 
 <div class="clrc-player" data-video-id="PPSNnYSKkYs">
 <script type="text/plain">
+# コールは NANA CALL BOOK 2022 p16 より
+# 口上は水樹奈々コールwikiのコメントより https://w.atwiki.jp/nm_7/pages/36.html
+
+# メタデータ
+[v:0.7]
+[yt:PPSNnYSKkYs]
+
 # パート定義
 [pt:L:label=歌詞|color=#ff7777]
 [pt:C:label=コール|color=#77ff77|holdsec=1]
@@ -73,11 +81,13 @@
 <script>
 /*!
  * clrc-parser.js
- * CLRC (.clrc) ファイルのパーサー。ファイル仕様は spec.md (Draft) を参照。
+ * CLRC (.clrc) ファイルのパーサー。ファイル仕様は spec.md (v0.7 Draft) を参照。
  *
  * 使い方:
  *   const result = CLRC.parse(text);
- *   // result.meta     : メタデータタグ ([ti:] [ar:] [offset:] など)
+ *   // result.meta     : メタデータタグ ([ti:] [ar:] [offset:] [yt:] など)
+ *   // result.version  : 準拠している CLRC 規格のバージョン ([v:] タグ。無ければ "0.6")
+ *   // result.videoId  : [yt:] タグの YouTube 動画 ID (無ければ null)
  *   // result.parts    : パート定義 { ラベル名: { label, color, offcolor, scroll, holdsec } }
  *   // result.lines    : 表示する歌詞行 (開始時間順)。"#:" の付加情報の行は info: true
  *   // result.warnings : 仕様違反・解釈できなかった行 { line: 行番号, message }
@@ -104,6 +114,12 @@
   const LABEL_RE = /^([A-Z][A-Z0-9]*|#):/;
   const PART_NAME_RE = /^[A-Z][A-Z0-9]*$/;
   const EXTRA_LINE_TIME_RE = new RegExp('^\\[' + TIME + '\\]');
+  const VERSION_RE = /^\d+\.\d+$/;
+  // 動画 ID の長さは YouTube の公式仕様で保証されていないため、文字の種類だけを確認する
+  const VIDEO_ID_RE = /^[\w-]+$/;
+
+  // [v:] タグが無いファイルは初版として扱う
+  const INITIAL_VERSION = '0.6';
 
   const DEFAULT_PART_NAME = 'default';
   const BUILTIN_DEFAULT_PART = { label: null, color: '#ffffff', offcolor: '#777777', scroll: true, holdsec: 0 };
@@ -277,6 +293,12 @@
           const ms = Number(value);
           if (value !== '' && Number.isFinite(ms)) meta.offset = ms;
           else warn(lineNo, `offset にはミリ秒の数値を指定してください (指定値: "${value}")`);
+        } else if (key === 'v') {
+          if (VERSION_RE.test(value)) meta.v = value;
+          else warn(lineNo, `v には "0.7" のような 数字.数字 の形式でバージョンを指定してください (指定値: "${value}")`);
+        } else if (key === 'yt') {
+          if (VIDEO_ID_RE.test(value)) meta.yt = value;
+          else warn(lineNo, `yt には YouTube の動画 ID (半角英数字と - _ のみ) を指定してください。URL ではなく ID だけを書きます (指定値: "${value}")`);
         } else {
           meta[key] = value;
         }
@@ -355,7 +377,14 @@
     });
 
     warnings.sort((a, b) => a.line - b.line);
-    return { meta, parts, lines, warnings };
+    return {
+      meta,
+      version: meta.v || INITIAL_VERSION,
+      videoId: meta.yt || null,
+      parts,
+      lines,
+      warnings,
+    };
   }
 
   return { parse };
@@ -377,6 +406,8 @@
  *   </div>
  *
  * data-video-id には動画の URL をそのまま書いてもよい。
+ * clrc ファイルに [yt:動画ID] がある場合、data-video-id は省略できる。
+ * 両方ある場合は data-video-id を優先する。
  * data-debug="true" を付けると、clrc ファイルの警告を歌詞の下に表示する。
  */
 (function () {
@@ -545,9 +576,11 @@
     }
 
     async init() {
-      const videoId = extractVideoId(this.el.dataset.videoId);
       const source = await loadSource(this.el);
-      const { lines, warnings } = CLRC.parse(source);
+      const parsed = CLRC.parse(source);
+      const { lines, warnings } = parsed;
+      // ページ側の指定 (data-video-id) があれば、clrc ファイルの [yt:] より優先する
+      const videoId = extractVideoId(this.el.dataset.videoId) || parsed.videoId;
 
       warnings.forEach((w) => console.warn(`[clrc] ${w.line}行目: ${w.message}`));
 
@@ -566,7 +599,9 @@
       }
       this.bindUserScroll();
 
-      if (!videoId) throw new Error('data-video-id に YouTube の動画 ID を指定してください。');
+      if (!videoId) {
+        throw new Error('YouTube の動画 ID が指定されていません。data-video-id 属性か、clrc ファイルの [yt:動画ID] タグで指定してください。');
+      }
 
       const YT = await loadYouTubeAPI();
       this.player = new YT.Player(playerHost, {

@@ -3,6 +3,7 @@
 
   ■ カスタマイズ方法（用意するのは「動画ID」と「clrcファイル」だけ）
     1. data-video-id に YouTube の動画ID（または動画のURL）を書く
+       （clrc ファイルに [yt:動画ID] を書いている場合は省略できます。両方ある場合は data-video-id を優先します）
     2. 歌詞は次のどちらかで指定する
        A. 下の <script type="text/plain"> ～ </script> の間に clrc ファイルの中身を貼り付ける
        B. clrc ファイルをサーバーに置き、data-src="ファイル名.clrc" を書く
@@ -21,6 +22,13 @@
 
 <div class="clrc-player" data-video-id="PPSNnYSKkYs">
 <script type="text/plain">
+# コールは NANA CALL BOOK 2022 p16 より
+# 口上は水樹奈々コールwikiのコメントより https://w.atwiki.jp/nm_7/pages/36.html
+
+# メタデータ
+[v:0.7]
+[yt:PPSNnYSKkYs]
+
 # パート定義
 [pt:L:label=歌詞|color=#ff7777]
 [pt:C:label=コール|color=#77ff77|holdsec=1]

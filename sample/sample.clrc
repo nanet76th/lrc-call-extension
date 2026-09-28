@@ -1,6 +1,10 @@
 # コールは NANA CALL BOOK 2022 p16 より
 # 口上は水樹奈々コールwikiのコメントより https://w.atwiki.jp/nm_7/pages/36.html
 
+# メタデータ
+[v:0.7]
+[yt:PPSNnYSKkYs]
+
 # パート定義
 [pt:L:label=歌詞|color=#ff7777]
 [pt:C:label=コール|color=#77ff77|holdsec=1]

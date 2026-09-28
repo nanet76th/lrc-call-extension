@@ -36,6 +36,8 @@ YouTube 動画の再生に同期して、歌詞・コール・口上を表示す
 
 CLRC ファイルをサーバー上に置ける場合は、`<script type="text/plain">` の代わりに `data-src="ファイル名.clrc"` で外部ファイルを指定することもできます（ローカルで HTML を直接開いた場合はブラウザの制約により動作しません）。
 
+CLRC ファイルに `[yt:動画ID]` タグを書いている場合、`data-video-id` は省略できます。両方ある場合は `data-video-id` が優先されます。
+
 書き間違いを確認したい場合は `data-debug="true"` を指定すると、パーサーの警告が表示欄の下に表示されます。
 
 具体的な例は [sample/sample.html](sample/sample.html) を参照してください。

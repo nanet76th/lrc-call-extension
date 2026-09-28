@@ -13,6 +13,8 @@
  *   </div>
  *
  * data-video-id には動画の URL をそのまま書いてもよい。
+ * clrc ファイルに [yt:動画ID] がある場合、data-video-id は省略できる。
+ * 両方ある場合は data-video-id を優先する。
  * data-debug="true" を付けると、clrc ファイルの警告を歌詞の下に表示する。
  */
 (function () {
@@ -181,9 +183,11 @@
     }
 
     async init() {
-      const videoId = extractVideoId(this.el.dataset.videoId);
       const source = await loadSource(this.el);
-      const { lines, warnings } = CLRC.parse(source);
+      const parsed = CLRC.parse(source);
+      const { lines, warnings } = parsed;
+      // ページ側の指定 (data-video-id) があれば、clrc ファイルの [yt:] より優先する
+      const videoId = extractVideoId(this.el.dataset.videoId) || parsed.videoId;
 
       warnings.forEach((w) => console.warn(`[clrc] ${w.line}行目: ${w.message}`));
 
@@ -202,7 +206,9 @@
       }
       this.bindUserScroll();
 
-      if (!videoId) throw new Error('data-video-id に YouTube の動画 ID を指定してください。');
+      if (!videoId) {
+        throw new Error('YouTube の動画 ID が指定されていません。data-video-id 属性か、clrc ファイルの [yt:動画ID] タグで指定してください。');
+      }
 
       const YT = await loadYouTubeAPI();
       this.player = new YT.Player(playerHost, {

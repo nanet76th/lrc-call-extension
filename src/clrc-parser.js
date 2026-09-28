@@ -1,10 +1,12 @@
 /*!
  * clrc-parser.js
- * CLRC (.clrc) ファイルのパーサー。ファイル仕様は spec.md (Draft) を参照。
+ * CLRC (.clrc) ファイルのパーサー。ファイル仕様は spec.md (v0.7 Draft) を参照。
  *
  * 使い方:
  *   const result = CLRC.parse(text);
- *   // result.meta     : メタデータタグ ([ti:] [ar:] [offset:] など)
+ *   // result.meta     : メタデータタグ ([ti:] [ar:] [offset:] [yt:] など)
+ *   // result.version  : 準拠している CLRC 規格のバージョン ([v:] タグ。無ければ "0.6")
+ *   // result.videoId  : [yt:] タグの YouTube 動画 ID (無ければ null)
  *   // result.parts    : パート定義 { ラベル名: { label, color, offcolor, scroll, holdsec } }
  *   // result.lines    : 表示する歌詞行 (開始時間順)。"#:" の付加情報の行は info: true
  *   // result.warnings : 仕様違反・解釈できなかった行 { line: 行番号, message }
@@ -31,6 +33,12 @@
   const LABEL_RE = /^([A-Z][A-Z0-9]*|#):/;
   const PART_NAME_RE = /^[A-Z][A-Z0-9]*$/;
   const EXTRA_LINE_TIME_RE = new RegExp('^\\[' + TIME + '\\]');
+  const VERSION_RE = /^\d+\.\d+$/;
+  // 動画 ID の長さは YouTube の公式仕様で保証されていないため、文字の種類だけを確認する
+  const VIDEO_ID_RE = /^[\w-]+$/;
+
+  // [v:] タグが無いファイルは初版として扱う
+  const INITIAL_VERSION = '0.6';
 
   const DEFAULT_PART_NAME = 'default';
   const BUILTIN_DEFAULT_PART = { label: null, color: '#ffffff', offcolor: '#777777', scroll: true, holdsec: 0 };
@@ -204,6 +212,12 @@
           const ms = Number(value);
           if (value !== '' && Number.isFinite(ms)) meta.offset = ms;
           else warn(lineNo, `offset にはミリ秒の数値を指定してください (指定値: "${value}")`);
+        } else if (key === 'v') {
+          if (VERSION_RE.test(value)) meta.v = value;
+          else warn(lineNo, `v には "0.7" のような 数字.数字 の形式でバージョンを指定してください (指定値: "${value}")`);
+        } else if (key === 'yt') {
+          if (VIDEO_ID_RE.test(value)) meta.yt = value;
+          else warn(lineNo, `yt には YouTube の動画 ID (半角英数字と - _ のみ) を指定してください。URL ではなく ID だけを書きます (指定値: "${value}")`);
         } else {
           meta[key] = value;
         }
@@ -282,7 +296,14 @@
     });
 
     warnings.sort((a, b) => a.line - b.line);
-    return { meta, parts, lines, warnings };
+    return {
+      meta,
+      version: meta.v || INITIAL_VERSION,
+      videoId: meta.yt || null,
+      parts,
+      lines,
+      warnings,
+    };
   }
 
   return { parse };

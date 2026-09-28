@@ -8,7 +8,7 @@
  * 生成物:
  *   src/clrc-embed.html        … スクリプトだけを埋め込んだ HTML
  *   sample/01-hateblo-a.html   … はてなブログ埋め込み用のサンプル
- * あわせて sample.html 内の歌詞 (<script type="text/plain"> の中身) を sample.clrc の内容に更新する。
+ * あわせて sample/sample.html 内の歌詞 (<script type="text/plain"> の中身) を sample/sample.clrc の内容に更新する。
  */
 'use strict';
 
@@ -44,13 +44,14 @@ write('src/clrc-embed.html', `<!--
     </script>
     </div>
 
+  clrc ファイルに [yt:動画ID] を書いている場合、data-video-id は省略できます。
   clrc ファイルの書き方は spec.md を参照してください。
 -->
 ${scripts}
 `);
 
-const clrc = read('sample.clrc').trim();
-if (/<\/script/i.test(clrc)) throw new Error('sample.clrc に "</script" が含まれているため埋め込めません');
+const clrc = read('sample/sample.clrc').trim();
+if (/<\/script/i.test(clrc)) throw new Error('sample/sample.clrc に "</script" が含まれているため埋め込めません');
 
 write('sample/01-hateblo-a.html', `<!--
   はてなブログ埋め込みサンプル A (1 記事にすべてを貼り付ける方式)
@@ -61,6 +62,7 @@ write('sample/01-hateblo-a.html', `<!--
        (「見たまま」「Markdown」「はてな記法」モードでは、[ ] などが記法として変換されることがあります)
     2. このファイルの中身をすべて貼り付ける
     3. data-video-id を YouTube の動画ID (または動画のURL) に書き換える
+       (clrc ファイルに [yt:動画ID] を書いている場合は、data-video-id を消しても構いません)
     4. <script type="text/plain"> ～ </script> の間を、自分の clrc ファイルの中身に書き換える
 
   ■ 注意
@@ -82,7 +84,7 @@ ${clrc}
 ${scripts}
 `);
 
-const sampleHtml = read('sample.html');
+const sampleHtml = read('sample/sample.html');
 const inlineRe = /(<script type="text\/plain">\n)[\s\S]*?(\n<\/script>)/;
-if (!inlineRe.test(sampleHtml)) throw new Error('sample.html に <script type="text/plain"> が見つかりません');
-write('sample.html', sampleHtml.replace(inlineRe, (_, open, close) => open + clrc + close));
+if (!inlineRe.test(sampleHtml)) throw new Error('sample/sample.html に <script type="text/plain"> が見つかりません');
+write('sample/sample.html', sampleHtml.replace(inlineRe, (_, open, close) => open + clrc + close));
