@@ -17,6 +17,7 @@ YouTube 動画の再生に同期して、歌詞・コール・口上を表示す
 | `src/clrc-player.js` | YouTube 動画との同期表示を行うプレイヤー本体 |
 | `src/clrc-embed.html` | 上記 2 つを `<script>` に埋め込んだ生成物（`tools/build-embed.js` で自動生成） |
 | `tools/build-embed.js` | 埋め込み用 HTML・サンプルを生成するビルドスクリプト |
+| `player.html` | CLRC ライブラリの曲を URL 指定で再生するページ（「ライブラリの曲を再生する」を参照） |
 | `sample/` | 動作サンプル一式 |
 
 ## 使い方
@@ -53,6 +54,20 @@ node tools/build-embed.js
 ```
 
 を実行すると、`src/clrc-embed.html` と `sample/01-hateblo-a.html`（および `sample/sample.html` 内の歌詞部分）が再生成されます。`src/clrc-parser.js` / `src/clrc-player.js` を変更した場合は、このコマンドで埋め込み版を更新してください。
+
+### ライブラリの曲を再生する
+
+`player.html` は GitHub Pages で公開しており、登録済みの CLRC ライブラリの曲を URL で指定して再生できます。
+
+```
+https://nanet76th.github.io/lrc-call-extension/player.html?lib=ライブラリ名&song=曲ID
+```
+
+- ライブラリは `player.html` 内の `LIBRARIES` に登録します（任意の URL を読み込ませないため、登録済みのものだけ再生できます）。
+- 曲ID は、ライブラリの `data/` からの相対パスから拡張子 `.clrc` を除いたものです。
+- 動画 ID は CLRC ファイルの `[yt:]` タグから取得します。
+- `&debug=true` を付けると、パーサーの警告が表示されます。
+- ローカルで確認する場合は、Web サーバーで開いて `player.html?lib=sample&song=sample` を表示します。
 
 ## ライセンス
 

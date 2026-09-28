@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<!--
+  CLRC ライブラリ用 再生ページ
+
+  ■ URL
+    player.html?lib=ライブラリ名&song=曲ID
+    例: player.html?lib=nana-call&song=eternal-blaze
+        → https://nanet76th.github.io/nana-call/data/eternal-blaze.clrc を再生する
+
+  ■ ライブラリの追加
+    下の LIBRARIES に登録する。任意の URL を読み込ませないよう、登録済みのライブラリだけ再生できる。
+    曲ID は data/ からの相対パス (拡張子 .clrc を除く)。英数字・_・- と、区切りの / だけ使える。
+
+  ■ 動画 ID
+    clrc ファイルの [yt:動画ID] タグを使う。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLRC Player</title>
+<style>
+  body { margin: 0; padding: 16px; background: #111; color: #eee; font-family: sans-serif; }
+  main { max-width: 960px; margin: 0 auto; }
+  a { color: #8cf; }
+  h1 { margin: 0 0 4px; font-size: 1.4em; }
+  .meta { margin: 0 0 12px; color: #aaa; }
+  .error { white-space: pre-wrap; color: #f88; }
+</style>
+</head>
+<body>
+<main>
+  <p><a id="home" hidden>← 曲一覧</a></p>
+  <h1 id="title"></h1>
+  <p class="meta" id="meta"></p>
+  <div id="host"></div>
+</main>
+
+<script src="src/clrc-parser.js"></script>
+<script src="src/clrc-player.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const LIBRARIES = {
+    'nana-call': {
+      home: 'https://nanet76th.github.io/nana-call/',
+      data: 'https://nanet76th.github.io/nana-call/data/',
+    },
+    // ローカル確認用: player.html?lib=sample&song=sample
+    sample: {
+      home: null,
+      data: 'sample/',
+    },
+  };
+  const SONG_ID_RE = /^[\w-]+(\/[\w-]+)*$/;
+
+  const $ = (id) => document.getElementById(id);
+
+  function showError(message) {
+    const p = document.createElement('p');
+    p.className = 'error';
+    p.textContent = message;
+    $('host').replaceChildren(p);
+  }
+
+  async function main() {
+    const params = new URLSearchParams(location.search);
+    const libName = params.get('lib') || '';
+    const song = params.get('song') || '';
+
+    const lib = Object.prototype.hasOwnProperty.call(LIBRARIES, libName) ? LIBRARIES[libName] : null;
+    if (!lib) throw new Error(`ライブラリ "${libName}" は登録されていません。URL の lib= を確認してください。`);
+    if (lib.home) {
+      $('home').href = lib.home;
+      $('home').hidden = false;
+    }
+    if (!SONG_ID_RE.test(song)) throw new Error(`曲ID "${song}" が正しくありません。URL の song= を確認してください。`);
+
+    const url = `${lib.data}${song}.clrc`;
+    let res;
+    try {
+      res = await fetch(url);
+    } catch (e) {
+      throw new Error(`${url} を読み込めませんでした。`);
+    }
+    if (!res.ok) throw new Error(`${url} を読み込めませんでした (HTTP ${res.status})`);
+    const source = await res.text();
+
+    const { meta } = CLRC.parse(source);
+    const title = meta.ti || song;
+    document.title = `${title} - CLRC Player`;
+    $('title').textContent = title;
+    $('meta').textContent = [meta.ar, meta.al, meta.by && `作成: ${meta.by}`].filter(Boolean).join(' / ');
+
+    // 取得済みの内容をインライン指定で渡す (プレイヤー側で再度 fetch させない)
+    const el = document.createElement('div');
+    el.className = 'clrc-player';
+    if (params.get('debug') === 'true') el.dataset.debug = 'true';
+    const script = document.createElement('script');
+    script.type = 'text/plain';
+    script.textContent = source;
+    el.appendChild(script);
+    $('host').replaceChildren(el);
+    CLRC.initPlayers();
+  }
+
+  main().catch((err) => {
+    console.error('[clrc]', err);
+    showError(err.message);
+  });
+})();
+</script>
+</body>
+</html>
